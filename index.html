@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Floripa 2026 prueba 3, Juanech</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        .tab-btn {
+            padding: 8px 16px;
+            cursor: pointer;
+            border: none;
+            background-color: transparent;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            color: #4b5563;
+        }
+        .tab-btn.active {
+            color: #3b82f6;
+            border-bottom-color: #3b82f6;
+        }
+        .sheet {
+            display: none;
+        }
+        .sheet.active {
+            display: block;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #d1d5db;
+            padding: 10px;
+            text-align: left;
+            font-size: 0.875rem;
+        }
+        th {
+            background-color: #f9fafb;
+            font-weight: 600;
+            color: #374151;
+        }
+        td {
+            background-color: #ffffff;
+        }
+        .input-cell {
+            background-color: #eff6ff;
+        }
+        input:disabled, select:disabled, .disabled-checkbox {
+            background-color: #f9fafb;
+            color: #6b7280;
+            cursor: not-allowed;
+        }
+         input[type="text"], input[type="number"], input[type="date"], select, input[type="url"] {
+            width: 100%;
+            border: 1px solid #d1d5db;
+            padding: 4px 6px;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .negative-balance { color: #ef4444; font-weight: 700; }
+        .positive-balance { color: #22c55e; font-weight: 700; }
+        .summary-card {
+            background-color: white;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            text-align: center;
+        }
+        .summary-title { color: #6b7280; font-size: 0.875rem; font-weight: 500; }
+        .summary-value { color: #111827; font-size: 2rem; font-weight: 700; letter-spacing: -0.025em; }
+        #auth-status {
+            position: fixed; top: 10px; right: 10px; background-color: #e5e7eb; color: #4b5563; padding: 5px 10px;
+            border-radius: 9999px; font-size: 0.8rem; font-weight: 500; display: flex; align-items: center; gap: 6px; z-index: 50;
+        }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; }
+        .status-connected { background-color: #22c55e; }
+        .status-disconnected { background-color: #ef4444; }
+        .editor-hidden { display: none !important; }
+
+        /* Estilos del Modal */
+        .modal {
+            display: none; 
+            position: fixed; 
+            z-index: 100; 
+            left: 0;
+            top: 0;
+            width: 100%; 
+            height: 100%; 
+            overflow: auto; 
+            background-color: rgba(0,0,0,0.4);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 10% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 90%;
+            max-width: 500px;
+            border-radius: 8px;
+        }
+        .close-btn {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .close-btn:hover,
+        .close-btn:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body class="p-2 sm:p-4 md:p-8">
+    
+    <div id="global-error-banner" class="hidden bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4" role="alert">
+        <p class="font-bold">Error de Configuración de Firebase</p>
+        <p id="global-error-message"></p>
+    </div>
+    
+    <div id="auth-status">
+        <div id="status-dot" class="status-dot status-disconnected"></div>
+        <span id="status-text">Desconectado</span>
+    </div>
+
+    <div class="max-w-7xl mx-auto bg-white rounded-xl shadow-lg">
+        <div class="p-4 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-center text-center sm:text-left">
+            <div>
+                <h1 class="text-xl sm:text-2xl font-bold text-gray-800">Floripa 2026 prueba 3, Juanech</h1>
+            </div>
+            <button id="editor-mode-btn" onclick="toggleEditorMode()" class="mt-2 sm:mt-0 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded transition-colors text-sm">
+                Activar Modo Editor
+            </button>
+        </div>
+
+        <!-- Pestañas de Navegación -->
+        <div class="px-2 sm:px-4 border-b border-gray-200 overflow-x-auto">
+            <nav class="flex space-x-1">
+                <button class="tab-btn active" onclick="showSheet('portada')">📊 Portada</button>
+                <button class="tab-btn" onclick="showSheet('transacciones')">💳 Transacciones</button>
+                <button class="tab-btn" onclick="showSheet('pagos')">🙋‍♂️ Pagos</button>
+                <button class="tab-btn" onclick="showSheet('cotizaciones')">📋 Cotizaciones</button>
+            </nav>
+        </div>
+
+        <div class="p-2 sm:p-4 md:p-6">
+            <!-- Hoja 1: Portada -->
+            <div id="portada" class="sheet active">
+                 <h2 class="text-2xl sm:text-3xl font-bold text-center mb-6 text-gray-800">FLORIPA 2026</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+                    <div class="summary-card"><h2 class="summary-title">TOTAL EN CAJA</h2><p id="totalCaja" class="summary-value">$0</p></div>
+                    <div class="summary-card"><h2 class="summary-title">TOTAL GASTADO</h2><p id="totalGastado" class="summary-value">$0</p></div>
+                    <div class="summary-card"><h2 class="summary-title">PRESUPUESTO DECIDIDO</h2><p id="presupuestoDecidido" class="summary-value">$0</p></div>
+                </div>
+            </div>
+
+            <!-- Hoja 2: Transacciones de Caja -->
+            <div id="transacciones" class="sheet">
+                <h2 class="text-lg sm:text-xl font-semibold mb-4 text-gray-700">Historial de Transacciones</h2>
+                <div class="overflow-x-auto"><table class="min-w-full">
+                    <thead><tr id="transacciones-header"></tr></thead>
+                    <tbody id="transacciones-body"></tbody>
+                </table></div>
+                <button id="add-transaccion-btn" onclick="openTransactionModal()" class="mt-4 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded transition-colors editor-hidden">+ Agregar Transacción</button>
+            </div>
+
+            <!-- Hoja 3: Pagos -->
+            <div id="pagos" class="sheet">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg sm:text-xl font-semibold text-gray-700">Balance de Pagos</h2>
+                    <button id="open-payment-modal-btn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded transition-colors editor-hidden">Registrar Aporte</button>
+                </div>
+                 <div class="overflow-x-auto"><table>
+                    <thead><tr><th>Weon</th><th>Total a Pagar</th><th>Total Pagado</th><th>Saldo</th></tr></thead>
+                    <tbody id="pagos-body"></tbody>
+                 </table></div>
+            </div>
+
+            <!-- Hoja 4: Cotizaciones -->
+            <div id="cotizaciones" class="sheet">
+                <h2 class="text-lg sm:text-xl font-semibold mb-4 text-gray-700">Planificación y Cotizaciones</h2>
+                <div id="cotizaciones-container"></div>
+                <button id="add-cotizacion-btn" onclick="addCotizacionRow()" class="mt-4 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded transition-colors editor-hidden">+ Agregar Ítem</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Registrar Pagos -->
+    <div id="payment-modal" class="modal">
+      <div class="modal-content">
+        <span class="close-btn" id="close-modal-btn">&times;</span>
+        <h2 class="text-xl font-semibold mb-4 text-gray-700">Registrar Aporte a la Caja</h2>
+        <div class="space-y-4">
+            <div><label for="pago-quien" class="block text-sm font-medium text-gray-700">¿Qué Weon Abona?</label><select id="pago-quien" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm"></select></div>
+            <div><label for="pago-monto" class="block text-sm font-medium text-gray-700">Monto del Abono (CLP)</label><input type="number" id="pago-monto" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" placeholder="50000"></div>
+            <button onclick="registrarPago()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md flex items-center justify-center">Registrar Abono</button>
+        </div>
+        <p id="pago-success" class="text-green-600 text-sm mt-2 font-medium"></p>
+      </div>
+    </div>
+
+    <!-- Modal para Registrar Transacciones -->
+    <div id="transaction-modal" class="modal">
+      <div class="modal-content">
+        <span class="close-btn" id="close-transaction-modal-btn">&times;</span>
+        <h2 class="text-xl font-semibold mb-4 text-gray-700">Registrar Nueva Transacción</h2>
+        <div class="space-y-4">
+            <div><label for="trans-fecha" class="block text-sm font-medium text-gray-700">Fecha</label><input type="date" id="trans-fecha" class="mt-1 block w-full"></div>
+            <div><label for="trans-descripcion" class="block text-sm font-medium text-gray-700">Descripción</label><input type="text" id="trans-descripcion" class="mt-1 block w-full" placeholder="Ej: Compra de pasajes"></div>
+            <div><label for="trans-pagadoPor" class="block text-sm font-medium text-gray-700">Pagado Por</label><select id="trans-pagadoPor" class="mt-1 block w-full"></select></div>
+            <div><label for="trans-tipo" class="block text-sm font-medium text-gray-700">Tipo</label><select id="trans-tipo" class="mt-1 block w-full"><option value="Salida">Salida</option><option value="Entrada">Entrada</option></select></div>
+            <div><label for="trans-monto" class="block text-sm font-medium text-gray-700">Monto (CLP)</label><input type="number" id="trans-monto" class="mt-1 block w-full" placeholder="100000"></div>
+            <button onclick="registrarTransaccion()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md">Registrar Transacción</button>
+        </div>
+        <p id="trans-success" class="text-green-600 text-sm mt-2 font-medium"></p>
+      </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getFirestore, collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc, setLogLevel } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+        // --- CONFIGURACIÓN INICIAL Y ESTADO ---
+        const amigos = [ "Agustin Prieto", "Vicente Gonzales", "Domingo Bermudez", "Martin Castro", "Diego Noseda", "Felipe Schweizer", "Tomas Valdes", "Juan Echeverria" ];
+        let transacciones = [], cotizaciones = [];
+        let db, auth, isEditorMode = false;
+        let transaccionesCollection, cotizacionesCollection;
+
+        // --- CONFIGURACIÓN DE FIREBASE ---
+        // Conectado al proyecto "floripa-2026" del usuario.
+        const firebaseConfig = {
+            apiKey: "AIzaSyAsznFVwwU4fFml8l33-Dy7zKKCsQ8x3eA",
+            authDomain: "floripa-2026.firebaseapp.com",
+            projectId: "floripa-2026",
+            storageBucket: "floripa-2026.firebasestorage.app",
+            messagingSenderId: "986395752981",
+            appId: "1:986395752981:web:b694bfbcf91923ded2ac1c",
+            measurementId: "G-LSQSJ0M69M"
+        };
+        
+        const appId = 'floripa-2026-juanech-3';
+
+
+        // --- INICIALIZACIÓN DE FIREBASE ---
+        if (firebaseConfig && firebaseConfig.apiKey && firebaseConfig.apiKey.includes("AIza")) {
+            try {
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app); auth = getAuth(app); setLogLevel('debug');
+                transaccionesCollection = collection(db, `/artifacts/${appId}/public/data/transacciones`);
+                cotizacionesCollection = collection(db, `/artifacts/${appId}/public/data/cotizaciones`);
+                setupAuth();
+            } catch (e) { console.error("Error initializing Firebase:", e); updateAuthStatus(false, 'Error'); }
+        } else { console.error("Firebase config is missing or invalid. Please provide your own."); updateAuthStatus(false, 'Config Faltante'); }
+
+        async function setupAuth() {
+            onAuthStateChanged(auth, user => {
+                if (user) { updateAuthStatus(true, `Conectado`); listenToChanges(); } 
+                else { updateAuthStatus(false, 'Autenticando...'); }
+            });
+            try {
+                await signInAnonymously(auth);
+            } catch (error) {
+                console.error("Authentication failed:", error);
+                updateAuthStatus(false, 'Error de Auth');
+                if (error.code === 'auth/configuration-not-found') {
+                    showGlobalError("La autenticación anónima no está habilitada en tu proyecto de Firebase. Por favor, ve a la Consola de Firebase > Authentication > Sign-in method y habilita el proveedor 'Anónimo'. La aplicación no funcionará hasta que se complete este paso.");
+                }
+            }
+        }
+
+        function listenToChanges() {
+            onSnapshot(transaccionesCollection, s => {
+                transacciones = s.docs.map(d => ({ id: d.id, ...d.data() }));
+                // Ordenar transacciones por fecha, de más nueva a más antigua
+                transacciones.sort((a, b) => (b.fecha && a.fecha) ? new Date(b.fecha) - new Date(a.fecha) : 0);
+                updateAll();
+            }, err => console.error("Error en listener de transacciones:", err));
+            onSnapshot(cotizacionesCollection, s => {
+                cotizaciones = s.docs.map(d => ({ id: d.id, ...d.data() }));
+                // Si la base de datos está completamente vacía, la poblamos
+                if (s.docs.length === 0 && transacciones.length === 0 && isEditorMode) {
+                    seedInitialData();
+                } else {
+                    updateAll();
+                }
+            }, err => console.error("Error en listener de cotizaciones:", err));
+        }
+        
+        async function seedInitialData() {
+            if (document.body.dataset.seeded) return; // Previene ejecuciones múltiples
+            document.body.dataset.seeded = 'true';
+
+            const initialT = [
+                { fecha: '2025-05-08', descripcion: 'Pago 1 airbnb (aporte)', pagadoPor: 'Todos', tipo: 'Entrada', monto: 386000 },
+                { fecha: '2025-06-02', descripcion: 'Pago 2 aribnb (aporte)', pagadoPor: 'Todos', tipo: 'Entrada', monto: 101224 },
+                { fecha: '2025-06-02', descripcion: 'Pago airbnb canasbeiras', pagadoPor: 'Caja', tipo: 'Salida', monto: 487000 },
+                { fecha: '2025-09-25', descripcion: 'Devolucion airbnb', pagadoPor: 'Airbnb', tipo: 'Entrada', monto: 487000 }
+            ];
+            const initialC = [
+                { item: 'Alojamiento Principal', costoTotal: 873000, participantes: amigos.map(() => true), estado: 'Decidido', enlace: '' },
+                { item: 'Pasajes Aéreos', costoTotal: 1200000, participantes: amigos.map(() => false), estado: 'Posible', enlace: '' },
+            ];
+            for (const t of initialT) { await addDoc(transaccionesCollection, t); }
+            for (const c of initialC) { await addDoc(cotizacionesCollection, c); }
+        }
+
+        // --- LÓGICA DE MODO EDITOR Y MODAL ---
+        window.toggleEditorMode = () => {
+            if (isEditorMode) {
+                isEditorMode = false;
+                updateUIAfterAuthChange();
+            } else {
+                const pass = prompt("Ingresa la contraseña para editar:");
+                if (pass === "Juanech") {
+                    isEditorMode = true;
+                    updateUIAfterAuthChange();
+                } else if (pass) { alert("Contraseña incorrecta."); }
+            }
+        };
+
+        const paymentModal = document.getElementById('payment-modal');
+        const transactionModal = document.getElementById('transaction-modal');
+        document.getElementById('open-payment-modal-btn').onclick = () => { paymentModal.style.display = 'block'; };
+        document.getElementById('close-modal-btn').onclick = () => { paymentModal.style.display = 'none'; };
+        document.getElementById('close-transaction-modal-btn').onclick = () => { transactionModal.style.display = 'none'; };
+        
+        window.onclick = (event) => { 
+            if (event.target == paymentModal) { paymentModal.style.display = 'none'; }
+            if (event.target == transactionModal) { transactionModal.style.display = 'none'; }
+        };
+
+        function updateUIAfterAuthChange() {
+            const btn = document.getElementById('editor-mode-btn');
+            btn.textContent = isEditorMode ? 'Salir del Modo Editor' : 'Activar Modo Editor';
+            btn.classList.toggle('bg-red-500', isEditorMode); btn.classList.toggle('hover:bg-red-600', isEditorMode);
+            btn.classList.toggle('bg-blue-500', !isEditorMode); btn.classList.toggle('hover:bg-blue-600', !isEditorMode);
+            document.querySelectorAll('.editor-hidden').forEach(el => { el.style.display = isEditorMode ? '' : 'none'; });
+            if(isEditorMode && transacciones.length === 0 && cotizaciones.length === 0) { seedInitialData(); }
+            updateAll();
+        }
+
+        // --- FUNCIONES DE RENDERIZADO ---
+        const d = (isDisabled) => isDisabled ? 'disabled' : '';
+        const getCheckboxAttrs = (isDisabled, isChecked) => `${d(isDisabled)} ${isDisabled ? 'disabled-checkbox' : ''} ${isChecked ? 'checked' : ''}`;
+        
+        window.renderTransacciones = () => {
+            const h = document.getElementById('transacciones-header'), b = document.getElementById('transacciones-body');
+            h.innerHTML = `<th>Fecha</th><th>Descripción</th><th>Pagado Por</th><th>Tipo</th><th>Monto (CLP)</th>${isEditorMode ? '<th>Acción</th>' : ''}`;
+            b.innerHTML = transacciones.map(t => `
+                <tr>
+                    <td class="input-cell"><input type="date" value="${t.fecha || ''}" onchange="updateTransaccion('${t.id}', 'fecha', this.value)" ${d(!isEditorMode)}></td>
+                    <td class="input-cell"><input type="text" value="${t.descripcion || ''}" onchange="updateTransaccion('${t.id}', 'descripcion', this.value)" ${d(!isEditorMode)}></td>
+                    <td class="input-cell"><select onchange="updateTransaccion('${t.id}', 'pagadoPor', this.value)" ${d(!isEditorMode)}>
+                        <option value="Caja" ${t.pagadoPor==='Caja'?'selected':''}>Caja</option><option value="Todos" ${t.pagadoPor==='Todos'?'selected':''}>Todos</option><option value="Airbnb" ${t.pagadoPor==='Airbnb'?'selected':''}>Airbnb</option>
+                        ${amigos.map(a => `<option value="${a}" ${t.pagadoPor===a?'selected':''}>${a}</option>`).join('')}
+                    </select></td>
+                    <td class="input-cell"><select onchange="updateTransaccion('${t.id}', 'tipo', this.value)" ${d(!isEditorMode)}>
+                        <option value="Entrada" ${t.tipo==='Entrada'?'selected':''}>Entrada</option><option value="Salida" ${t.tipo==='Salida'?'selected':''}>Salida</option>
+                    </select></td>
+                    <td class="input-cell"><input type="number" value="${t.monto || 0}" onchange="updateTransaccion('${t.id}', 'monto', parseFloat(this.value)||0)" ${d(!isEditorMode)}></td>
+                    ${isEditorMode ? `<td><button onclick="deleteTransaccion('${t.id}')" class="text-red-500 hover:text-red-700 font-semibold">Eliminar</button></td>` : ''}
+                </tr>`).join('');
+        }
+        
+        window.renderCotizaciones = () => {
+            const container = document.getElementById('cotizaciones-container');
+            if (!container) return;
+
+            container.innerHTML = `
+                <div class="space-y-4">
+                    ${cotizaciones.map(cotizacion => {
+                        const participantes = cotizacion.participantes || [];
+                        const pCount = participantes.filter(p => p).length;
+                        const cPP = pCount > 0 ? (cotizacion.costoTotal || 0) / pCount : 0;
+                        return `
+                            <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-4">
+                                <div class="input-cell p-2 rounded-md mb-3">
+                                    <label class="text-xs font-medium text-gray-500">Ítem</label>
+                                    <input type="text" value="${cotizacion.item || ''}" onchange="updateCotizacion('${cotizacion.id}', 'item', this.value)" class="text-lg font-semibold w-full bg-transparent border-0 p-0 focus:ring-0" ${d(!isEditorMode)}>
+                                </div>
+                                 <div class="input-cell p-2 rounded-md mb-3">
+                                    <label class="text-xs font-medium text-gray-500">Enlace (opcional)</label>
+                                    <input type="url" placeholder="https://ejemplo.com" value="${cotizacion.enlace || ''}" onchange="updateCotizacion('${cotizacion.id}', 'enlace', this.value)" class="text-sm w-full bg-transparent border-0 p-0 focus:ring-0" ${d(!isEditorMode)}>
+                                </div>
+                                
+                                <div class="grid grid-cols-2 gap-4 mb-4">
+                                    <div class="input-cell p-2 rounded-md">
+                                        <label class="text-xs font-medium text-gray-500">Costo Total</label>
+                                        <input type="number" value="${cotizacion.costoTotal || 0}" onchange="updateCotizacion('${cotizacion.id}', 'costoTotal', parseFloat(this.value)||0)" class="font-semibold w-full bg-transparent border-0 p-0 focus:ring-0" ${d(!isEditorMode)}>
+                                    </div>
+                                    <div class="p-2 rounded-md bg-gray-50">
+                                        <p class="text-xs font-medium text-gray-500">Costo p/p</p>
+                                        <p class="font-semibold">${formatCurrency(cPP)}</p>
+                                    </div>
+                                     <div class="input-cell p-2 rounded-md">
+                                        <label class="text-xs font-medium text-gray-500">Estado</label>
+                                        <select onchange="updateCotizacion('${cotizacion.id}', 'estado', this.value)" class="font-semibold w-full bg-transparent border-0 p-0 focus:ring-0" ${d(!isEditorMode)}>
+                                            <option value="Posible" ${cotizacion.estado==='Posible'?'selected':''}>Posible</option>
+                                            <option value="Decidido" ${cotizacion.estado==='Decidido'?'selected':''}>Decidido</option>
+                                        </select>
+                                    </div>
+                                    <div class="p-2 rounded-md bg-gray-50">
+                                        <p class="text-xs font-medium text-gray-500">Participantes</p>
+                                        <p class="font-semibold">${pCount}</p>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <h4 class="font-medium text-gray-600 mb-2">¿Quiénes participan?</h4>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
+                                        ${amigos.map((amigo, i) => `
+                                            <label class="flex items-center space-x-3">
+                                                <input type="checkbox" onchange="updateParticipante('${cotizacion.id}', ${i}, this.checked)" class="h-5 w-5 rounded" ${getCheckboxAttrs( !isEditorMode, participantes[i])}>
+                                                <span class="text-sm text-gray-700">${amigo}</span>
+                                            </label>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                                
+                                ${isEditorMode ? `
+                                    <div class="mt-4 border-t pt-3 text-right">
+                                        <button onclick="deleteCotizacion('${cotizacion.id}')" class="text-red-500 hover:text-red-700 font-semibold text-sm">Eliminar Ítem</button>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+        }
+
+        window.renderPagos = () => {
+            document.getElementById('pagos-body').innerHTML = amigos.map((amigo, i) => {
+                let aPagar = 0;
+                cotizaciones.forEach(c => {
+                    const participantes = c.participantes || [];
+                    if (c.estado === 'Decidido' && participantes[i]) {
+                        const pCount = participantes.filter(p => p).length;
+                        if (pCount > 0) aPagar += (c.costoTotal || 0) / pCount;
+                    }
+                });
+                let pagado = 0;
+                transacciones.forEach(t => {
+                    if (t.tipo === 'Entrada' && t.pagadoPor === amigo) pagado += (t.monto || 0);
+                    if (t.tipo === 'Entrada' && t.pagadoPor === 'Todos') pagado += (t.monto || 0) / amigos.length;
+                });
+                const saldo = pagado - aPagar, sClass = saldo < 0 ? 'negative-balance' : 'positive-balance';
+                return `<tr><td class="font-semibold">${amigo}</td><td>${formatCurrency(aPagar)}</td><td>${formatCurrency(pagado)}</td><td class="${sClass}">${formatCurrency(saldo)}</td></tr>`;
+            }).join('');
+            const select = document.getElementById('pago-quien');
+            if (select) select.innerHTML = amigos.map(a => `<option value="${a}">${a}</option>`).join('');
+        }
+
+        window.renderPortada = () => {
+            let tCaja=0, tGastadoSalidas=0, tDevoluciones=0;
+            transacciones.forEach(t => {
+                const monto = t.monto || 0;
+                if (t.tipo === 'Entrada') { tCaja += monto; if (t.descripcion?.toLowerCase().includes('devolucion')) tDevoluciones += monto; } 
+                else { tCaja -= monto; tGastadoSalidas += monto; }
+            });
+            const tGastadoNeto = tGastadoSalidas - tDevoluciones;
+            let pDecidido = cotizaciones.reduce((acc, c) => acc + (c.estado === 'Decidido' ? (c.costoTotal || 0) : 0), 0);
+            document.getElementById('totalCaja').textContent = formatCurrency(tCaja);
+            document.getElementById('totalGastado').textContent = formatCurrency(tGastadoNeto);
+            document.getElementById('presupuestoDecidido').textContent = formatCurrency(pDecidido);
+        }
+
+        // --- MANEJO DE DATOS Y EVENTOS ---
+        function updateAll() { if (!auth.currentUser) return; renderTransacciones(); renderCotizaciones(); renderPagos(); renderPortada(); }
+        window.updateTransaccion = async (id, f, v) => isEditorMode && await updateDoc(doc(db, transaccionesCollection.path, id), { [f]: v });
+        window.deleteTransaccion = async (id) => isEditorMode && confirm('¿Seguro que quieres eliminar esta transacción?') && await deleteDoc(doc(db, transaccionesCollection.path, id));
+        
+        window.openTransactionModal = () => {
+            if(!isEditorMode) return;
+            document.getElementById('trans-fecha').value = new Date().toISOString().split('T')[0];
+            const pagadoPorSelect = document.getElementById('trans-pagadoPor');
+            pagadoPorSelect.innerHTML = `<option value="Caja">Caja</option><option value="Todos">Todos</option><option value="Airbnb">Airbnb</option>${amigos.map(a => `<option value="${a}">${a}</option>`).join('')}`;
+            document.getElementById('transaction-modal').style.display = 'block'; 
+        };
+
+        window.registrarTransaccion = async () => {
+            if(!isEditorMode) return;
+            const fecha = document.getElementById('trans-fecha').value;
+            const descripcion = document.getElementById('trans-descripcion').value;
+            const pagadoPor = document.getElementById('trans-pagadoPor').value;
+            const tipo = document.getElementById('trans-tipo').value;
+            const monto = parseFloat(document.getElementById('trans-monto').value);
+
+            if (!fecha || !descripcion || !pagadoPor || !tipo || !monto || monto < 0) {
+                alert("Por favor, completa todos los campos correctamente.");
+                return;
+            }
+
+            await addDoc(transaccionesCollection, { fecha, descripcion, pagadoPor, tipo, monto });
+            
+            document.getElementById('trans-descripcion').value = '';
+            document.getElementById('trans-monto').value = '';
+            const successMsg = document.getElementById('trans-success');
+            successMsg.textContent = `¡Transacción registrada!`;
+            setTimeout(() => { 
+                successMsg.textContent = ''; 
+                document.getElementById('transaction-modal').style.display = 'none'; 
+            }, 2000);
+        };
+
+        window.registrarPago = async () => {
+            if(!isEditorMode) return;
+            const quien = document.getElementById('pago-quien').value, monto = parseFloat(document.getElementById('pago-monto').value);
+            const successMsg = document.getElementById('pago-success');
+            if (!quien || !monto || monto <= 0) { alert("Por favor, completa todos los campos correctamente."); return; }
+            await addDoc(transaccionesCollection, { fecha: new Date().toISOString().split('T')[0], descripcion: `Aporte de ${quien.split(' ')[0]}`, pagadoPor: quien, tipo: 'Entrada', monto: monto });
+            document.getElementById('pago-monto').value = '';
+            successMsg.textContent = `¡Abono de ${formatCurrency(monto)} registrado para ${quien}!`;
+            setTimeout(() => { successMsg.textContent = ''; paymentModal.style.display = 'none'; }, 2000);
+        };
+        window.updateCotizacion = async (id, f, v) => isEditorMode && await updateDoc(doc(db, cotizacionesCollection.path, id), { [f]: v });
+        window.updateParticipante = async (id, i, v) => {
+            if(!isEditorMode) return;
+            const c = cotizaciones.find(c => c.id === id); if(c) { const p = [...(c.participantes || amigos.map(() => false))]; p[i] = v; await updateDoc(doc(db, cotizacionesCollection.path, id), { participantes: p }); }
+        };
+        window.deleteCotizacion = async (id) => isEditorMode && confirm('¿Seguro que quieres eliminar este ítem?') && await deleteDoc(doc(db, cotizacionesCollection.path, id));
+        window.addCotizacionRow = async () => isEditorMode && await addDoc(cotizacionesCollection, { item: '', costoTotal: 0, participantes: amigos.map(() => false), estado: 'Posible', enlace: '' });
+        
+        // --- UTILIDADES ---
+        function showGlobalError(message) {
+            const banner = document.getElementById('global-error-banner');
+            const msgEl = document.getElementById('global-error-message');
+            msgEl.textContent = message;
+            banner.classList.remove('hidden');
+        }
+        function updateAuthStatus(c, t) { document.getElementById('status-dot').className = `status-dot ${c ? 'status-connected' : 'status-disconnected'}`; document.getElementById('status-text').textContent = t; }
+        window.formatCurrency = (a) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(a !== undefined && a !== null ? a : 0);
+        window.showSheet = (id) => {
+            document.querySelectorAll('.sheet').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelector(`.tab-btn[onclick="showSheet('${id}')"]`).classList.add('active');
+        };
+
+        // --- INICIO ---
+        updateUIAfterAuthChange();
+    </script>
+</body>
+</html>
+
