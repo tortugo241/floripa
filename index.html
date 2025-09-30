@@ -169,14 +169,14 @@
                     <thead><tr id="transacciones-header"></tr></thead>
                     <tbody id="transacciones-body"></tbody>
                 </table></div>
-                <button id="add-transaccion-btn" onclick="openTransactionModal()" class="mt-4 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded transition-colors editor-hidden">+ Agregar Transacción</button>
+                <button id="add-transaccion-btn" onclick="openTransactionModal()" class="js-editor-toggle mt-4 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded transition-colors editor-hidden">+ Agregar Transacción</button>
             </div>
 
             <!-- Hoja 3: Pagos -->
             <div id="pagos" class="sheet">
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-lg sm:text-xl font-semibold text-gray-700">Balance de Pagos</h2>
-                    <button id="open-payment-modal-btn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded transition-colors editor-hidden">Registrar Aporte</button>
+                    <button id="open-payment-modal-btn" class="js-editor-toggle bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded transition-colors editor-hidden">Registrar Aporte</button>
                 </div>
                  <div class="overflow-x-auto"><table>
                     <thead><tr><th>Weon</th><th>Total a Pagar</th><th>Total Pagado</th><th>Saldo</th></tr></thead>
@@ -188,7 +188,7 @@
             <div id="cotizaciones" class="sheet">
                 <h2 class="text-lg sm:text-xl font-semibold mb-4 text-gray-700">Planificación y Cotizaciones</h2>
                 <div id="cotizaciones-container"></div>
-                <button id="add-cotizacion-btn" onclick="addCotizacionRow()" class="mt-4 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded transition-colors editor-hidden">+ Agregar Ítem</button>
+                <button id="add-cotizacion-btn" onclick="addCotizacionRow()" class="js-editor-toggle mt-4 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded transition-colors editor-hidden">+ Agregar Ítem</button>
             </div>
         </div>
     </div>
@@ -343,7 +343,9 @@
             btn.textContent = isEditorMode ? 'Salir del Modo Editor' : 'Activar Modo Editor';
             btn.classList.toggle('bg-red-500', isEditorMode); btn.classList.toggle('hover:bg-red-600', isEditorMode);
             btn.classList.toggle('bg-blue-500', !isEditorMode); btn.classList.toggle('hover:bg-blue-600', !isEditorMode);
-            document.querySelectorAll('.editor-hidden').forEach(el => { el.style.display = isEditorMode ? '' : 'none'; });
+            document.querySelectorAll('.js-editor-toggle').forEach(el => {
+                el.classList.toggle('editor-hidden', !isEditorMode);
+            });
             if(isEditorMode && transacciones.length === 0 && cotizaciones.length === 0) { seedInitialData(); }
             updateAll();
         }
